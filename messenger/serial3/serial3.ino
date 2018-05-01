@@ -3,7 +3,8 @@ int missionStatus = 1;
 char recv;
 
 void setup() {
-  Serial.begin(115200);
+  Serial3.begin(115200);
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -23,48 +24,45 @@ void loop() {
     //turnOffDocking();
     //startController();
     //returnStartingPosition();
-    Serial.println("Mission Completed!");
+    Serial3.println("Mission Completed!");
     missionStatus = 0;
   }
 }
 
 void rmCapture()
 {
-  
   while(recv != '2')
   {
-    Serial.println("1");
+    Serial3.println("1");
     delay(100);
-    if(Serial.available()>0)
-      recv = Serial.read();
+    recv = Serial3.read();
     delay(100);
   }
-  //Serial.println("Successful Capture!");
+  Serial3.println("Successful Capture!");
 }
 
 void rmAssistedDocking()
 { 
   while(recv != '4')
   {
-    Serial.println("3");
+    Serial3.println("3");
     delay(100);
-    if(Serial.available()>0)
-      recv = Serial.read();
+    recv = Serial3.read();
     delay(100);
   }
-  //Serial.println("Successful Docking!");
+  Serial3.println("Successful Docking!");
 }
 
 void rmRefueling()
 {
   while(recv != '6')
   {
-    Serial.println("5");
+    Serial3.println("5");
     delay(100);
-    if(Serial.available()>0)
-      recv = Serial.read();
+    recv = Serial3.read();
+    Serial.println(recv);
     delay(100);
   }
-  //Serial.println("Successful Refueled!");
+  Serial3.println("Successful Refueled!");
 }
 

@@ -35,6 +35,7 @@ void serialSetup(); // Sets up serial communication to the Arduino
 void clientStart(char *msg);
 void receive();
 void clientMessage(char* msg, int size); // prints a char array
+void missionPhase(char start, char *end, char *startMsg, char*endMsg);
 
 int main(int argc, char *argv[])
 {
@@ -43,70 +44,47 @@ int main(int argc, char *argv[])
 
     serialSetup();
    
-   // Capture Maneuver
-    while( !( strcmp(buf, "1\n\0") == 0 ) ) // or try 1\r\n\0
-    {
-        n = read(fd, buf, 64);
-        //buf[n] = 0;
-        usleep(10000);
-    }
-
-    printf("HOST: Start Capture!\n");
-    
-    // Performing capture here
-
-    // Capture has finished, send the flag
-    printf("HOST: End Capture!\n");
-    write(fd, "2", 1); 
-    //receive(); // receive successful capture message from client
-	
+    //Capture Maneuver
+    missionPhase('1',"2","HOST: Start Capture!", "HOST: End Capture!");
+     
     // Docking Maneuver
-    while( !( strcmp(buf, "3\n\0") == 0 ) )
-    {
-        n = read(fd, buf, 64);
-        //buf[n] = 0;
-        usleep(10000);
-    }
-
-    printf("HOST: Start Docking!\n");
-    
-    // Perform docking plates here
-
-    // Docking has finished, send the flag
-    printf("HOST: End Docking!\n");
-    write(fd, "4", 1); 
-    //receive(); // receive successful docked message from client
-
+	missionPhase('3',"4","HOST: Start Docking!", "HOST: End Docking!"); 
+	
     // Refueling
-    while( !( strcmp(buf, "5\n\0") == 0 ) )
-    {
-        n = read(fd, buf, 64);
-        buf[n] = 0;
-        usleep(10000);
-        printf("%d:%s\n", n,buf);
-    }
+    missionPhase('5',"6","HOST: Start Refueling!", "HOST: End Refueling!");
 
-    printf("HOST: Start Refueling!\n");
-    
-    // Perform refueling here
-
-    // Refueling has finished, send the flag
-    printf("HOST: End Refueling!\n");
-    write(fd, "6", 1); 
-    //receive(); // receive successful refueled message from client
-    
+	// Final Mission Message
     receive();
 
     return 0;
 }
 
+void missionPhase(char start, char *end, char *startMsg, char*endMsg)
+{
+	int n;
+	char buf[64] = "";
+		
+    while( buf[0] != start )
+    {
+        n = read(fd, buf, 64);
+        buf[n] = 0;
+        sleep(1);
+        printf("%s\n", buf);
+    }
+
+    printf("%s\n", startMsg);
+    // Perform mission phase here
+    printf("%s\n", endMsg);
+    write(fd, "2", 1);
+    receive();
+}
 
 void serialSetup()
 {
     struct termios toptions;
 
     /* open serial port */
-    fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY);
+    fd = open("/dev/ttyTHS0", O_RDWR | O_NOCTTY);
     printf("fd opened as %i\n\n", fd);
     
     /* wait for the Arduino to reboot */

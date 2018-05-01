@@ -44,11 +44,11 @@ int main(int argc, char *argv[])
     serialSetup();
    
    // Capture Maneuver
-    while( !( strcmp(buf, "1\n\0") == 0 ) ) // or try 1\r\n\0
+    while( !( strcmp(temp, "1\r\n\0") == 0 ) ) //compare with \r\n\0
     {
         n = read(fd, buf, 64);
-        //buf[n] = 0;
-        usleep(10000);
+        buf[n] = 0;
+        usleep(1000000);
     }
 
     printf("HOST: Start Capture!\n");
@@ -58,13 +58,13 @@ int main(int argc, char *argv[])
     // Capture has finished, send the flag
     printf("HOST: End Capture!\n");
     write(fd, "2", 1); 
-    //receive(); // receive successful capture message from client
+    receive(); // receive successful capture message from client
 	
     // Docking Maneuver
-    while( !( strcmp(buf, "3\n\0") == 0 ) )
+    while( !( strcmp(buf, "3\r\n\0") == 0 ) )
     {
         n = read(fd, buf, 64);
-        //buf[n] = 0;
+        buf[n] = 0;
         usleep(10000);
     }
 
@@ -75,15 +75,14 @@ int main(int argc, char *argv[])
     // Docking has finished, send the flag
     printf("HOST: End Docking!\n");
     write(fd, "4", 1); 
-    //receive(); // receive successful docked message from client
+    receive(); // receive successful docked message from client
 
     // Refueling
-    while( !( strcmp(buf, "5\n\0") == 0 ) )
+    while( !( strcmp(buf, "5\r\n\0") == 0 ) )
     {
         n = read(fd, buf, 64);
         buf[n] = 0;
         usleep(10000);
-        printf("%d:%s\n", n,buf);
     }
 
     printf("HOST: Start Refueling!\n");
@@ -93,7 +92,7 @@ int main(int argc, char *argv[])
     // Refueling has finished, send the flag
     printf("HOST: End Refueling!\n");
     write(fd, "6", 1); 
-    //receive(); // receive successful refueled message from client
+    receive(); // receive successful refueled message from client
     
     receive();
 
@@ -106,7 +105,7 @@ void serialSetup()
     struct termios toptions;
 
     /* open serial port */
-    fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY);
+    fd = open("/dev/ttyTHS0", O_RDWR | O_NOCTTY);
     printf("fd opened as %i\n\n", fd);
     
     /* wait for the Arduino to reboot */

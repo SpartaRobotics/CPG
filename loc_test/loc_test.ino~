@@ -1,0 +1,297 @@
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ VARIABLES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+#define EM 10
+#define DOCK 11
+#define COUNT 0
+#define A 9999
+#define pi 3.1415926535
+#include <math.h>
+
+int SwitchCase;
+int RMsignal;
+int MasterSwitch;
+int xfToln;
+int XfTolp;
+int YfToln;
+int YfTolp;
+int THRUSTER[] = {2, 3, 4, 5, 6, 7, 8, 9};
+float THETA;
+float THETAF;
+float theta2;
+float thetaTol;
+float thetaCheckp;
+float thetaCheckn;
+float thetaCheckpf;
+float thetaChecknf;
+float X1;
+float X2;
+float X;
+float Y2;
+float Y1;
+float Y;
+float XF;
+float YF;
+float thetaf;
+
+long THETA_deg = 0;
+long THETAF_deg = 0;
+
+float J0 = 0.087; //Cost Function for X translation
+float J1 = 0.087; //Cost Function for Y translation
+float J2 = 0.087;
+float J3 = 0.087; //Must implement J4 and J5. Help the program generate automatic cost functions
+
+
+float line1_y_vect;
+float line1_x_vect;
+float line2_x_vect;
+float line2_y_vect;
+int flag; //This is the flag that determines if the vehicles are in a position to dock or not.
+int tol = 50; //YTolerance is 5 centimeters
+int line1; //[x, y]Line 1. Determines a single line manuver
+int line2; //[x, y]Line 2 . Dettermes the two line manuever
+int line3; //The first distance in the 3 line manuever
+int line22; //The second distance in the second line manuever
+int line32; //The second distance in the 3 line manuever
+int line33; //The third distance in the 3 line manuver
+int CounterX = 5;
+int CounterY = 5;
+int Xtdiv;
+int Ytdiv;
+
+bool rlyflag = false;
+long timer11 = 0;
+
+int xDP = 1828.8; //X-dimension of the demonstartion platform
+int yDP = 2438.4; //Y-Dimension of the demonstration platform
+int xtolop = 20; //Iniital positive Xtolorence for path generator
+int xtolon = -200; //[cm]Iniital negative Xtolorence for pathgenerator
+int ytolop = 200; //[cm]Ininital Ytolorence for path generator that is positive - 20 cm
+int ytolon = -200; //[cm]Y initial tologernece for path generator that is negative 20cm
+int tolm = 0.5; //tolorence for slope of the line - used by path generator 20 cm
+
+int pathGenSwitch = 0; //Determines the line vectors
+float mDP = yDP / xDP; //Slope of the Demonstration Platform
+float mDPinv = -1/mDP; //Slope of the perpendicular line drawn to this line
+double thetaDP = atan((double)mDP); //[Radians] angle formed by the diagonal of the table
+double thetaDPinv = atan((double)mDPinv); //[Radians] inverse of the angle formed by the diagonal of the table
+
+int allowedX = 60; // Allowable distance between the chase and target during translation in the X direction
+int allowedY = 60; // Allowable distance between the chase and target during translation in the y diection
+float xtoltrans = 0.4; //Allowed X disatnce between the Chase and target while translation
+float ytoltrans = 0.4; //Allowed Y disatnce between the Chase and target while translation
+float txdiv; //[S]time differenc between firing thrusters while translting in x
+float tydiv; //[S]time differenc between firing thrusters while translting in y
+int xfirst = 0; //keeps track of in what direction the vehicle needs to move first - in X first
+int yfirst = 0; //keeps track of in what direction the vehicle needs to move first - in Y first
+int line = 0; //Keeps track of how many lines
+
+int ROTATE = 0;
+int TRANSLATE = 0;
+int ROTATE2BODY = 0;
+int STATIONKEEP = 0;
+int RETURN_rotate = 0;
+int RETURN_translate = 0; 
+int TURNOFF = 0;
+
+int xory;
+int divisor;
+int len = 0;
+int j = 0;
+int dir;
+int rem;
+float ydiv;
+float xdiv;
+
+int dir2;
+int dir3;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~StationKeeping initializations~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+boolean freeze = true; // Variable to capture current point
+long timer12 = 0;
+int DBtol; // Dead Band Tolerence
+int X_bound_p;
+int X_bound_n;
+int Y_bound_p;
+int Y_bound_n;
+int X_SK;
+int Y_SK;
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SETUP ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(38400);
+  Serial1.begin(38400); // For the HC-05 Bluetooth
+  Serial3.begin(115200); // To the Robotic Manipulator
+  Serial1.setTimeout(20); //configures timeout for comms to 20 ms
+
+  for (int thisPin = 0; thisPin < 8; thisPin++) {
+    pinMode(THRUSTER[thisPin], OUTPUT); //Sets the pins as an output
+  }
+
+  pinMode(EM, OUTPUT);             //Sets the pin as an output
+  pinMode(DOCK, INPUT);            //Sets the pin as an input
+
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ VOID LOOP ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void loop() {
+  if (Serial.available() > 0) {
+
+    if (Serial.peek() == 'c')  {
+      X = Serial.parseInt(); //x pos of castor in mm
+      Y = Serial.parseInt(); // y pos of castor in mm
+      THETA_deg = Serial.parseInt(); //angle of castor in degrees*10
+      THETA = THETA_deg * pi / 180 / 10; //angle of castor in radians
+      XF = Serial.parseInt(); //x pos of pollux in mm
+      YF = Serial.parseInt(); // y pos of pollux in mm
+      THETAF_deg = Serial.parseInt(); //angle of pollux in degrees*10
+      THETAF = THETAF_deg * pi / 180 / 10; //angle of pollux in radians
+      ROTATE = 1;
+      Serial.println("YES");
+      delay(1000);
+    }
+    else {
+      Serial.read();
+      Serial.println("NO");
+      delay(1000);
+    }
+  }
+  
+  if (ROTATE){
+    Rotate2Inertial();
+    ROTATE = 0;
+    TRANSLATE = 1;
+  }
+  
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ STATION KEEPING AND SIGNAL MANAGEMENT~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void Rotate2Inertial()
+{
+  int THETAINERT = 0;
+  //function for the rotation to the inertial frame code
+  thetaTol = 5 * pi / 180; // Tolerence of +- 5°
+  thetaCheckp = THETAINERT + thetaTol; // Max value
+  thetaCheckn = THETAINERT - thetaTol; // Min value
+
+  // If the RMsignal is a 0, then we have not performed docking, if it is a 1, then docking has been performed
+
+  if (THETA > thetaCheckp) {
+  SwitchCase = 1;
+}
+else if (THETA < thetaCheckn) {
+  SwitchCase = 2;
+}
+else {
+  SwitchCase = 0;
+}
+
+switch (SwitchCase) {
+    case 1:
+      while (THETA > thetaCheckp) {
+      digitalWrite(THRUSTER[8, 9], HIGH); // Turn on - thrusters
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 1000) {
+          digitalWrite(THRUSTER[8, 9], LOW); // Turn off - thrusters
+          rlyflag = false;
+        }
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 500) {
+          digitalWrite(THRUSTER[6, 7], HIGH); // Turn on + thrusters
+          rlyflag = false;
+        }
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 1000) {
+          digitalWrite(THRUSTER[6, 7], LOW); // Turn off + thrusters
+          rlyflag = false;
+        }
+      }
+      break;
+
+    case 2:
+      while (THETA < thetaCheckn) {
+      digitalWrite(THRUSTER[6, 7], HIGH); // Turn on - thrusters
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 1000) {
+          digitalWrite(THRUSTER[6, 7], LOW); // Turn off - thrusters
+          rlyflag = false;
+        }
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 500) {
+          digitalWrite(THRUSTER[8, 9], HIGH); // Turn on + thrusters
+          rlyflag = false;
+        }
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 1000) {
+          digitalWrite(THRUSTER[8, 9], LOW); // Turn off + thrusters
+          rlyflag = false;
+        }
+      }
+      break;
+
+    default:
+      // Station keeping
+      if (THETA < thetaCheckn) {
+      digitalWrite(THRUSTER[8, 9], HIGH); // Turn on - thrusters
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 10) {
+          digitalWrite(THRUSTER[6, 7], HIGH); // Turn off - thrusters
+          rlyflag = false;
+        }
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 10) {
+          digitalWrite(THRUSTER[8, 9], LOW); // Turn on + thrusters
+          rlyflag = false;
+        }
+        timer11 = millis();
+        rlyflag = true;
+        if (rlyflag && (millis() - timer1) > 10) {
+          digitalWrite(THRUSTER[6, 7], LOW); // Turn off + thrusters
+          rlyflag = false;
+        }
+
+
+        else if (THETA > thetaCheckp) {
+        digitalWrite(THRUSTER[6, 7], HIGH); // Turn on - thrusters
+          timer11 = millis();
+          rlyflag = true;
+          if (rlyflag && (millis() - timer1) > 100) {
+            digitalWrite(THRUSTER[8, 9], HIGH); // Turn off - thrusters
+            rlyflag = false;
+          }
+          timer11 = millis();
+          rlyflag = true;
+          if (rlyflag && (millis() - timer1) > 100) {
+            digitalWrite(THRUSTER[6, 7], LOW); // Turn on + thrusters
+            rlyflag = false;
+          }
+          timer11 = millis();
+          rlyflag = true;
+          if (rlyflag && (millis() - timer1) > 100) {
+            digitalWrite(THRUSTER[8, 9], LOW); // Turn off + thrusters
+            rlyflag = false;
+          }
+
+
+          else{
+            break;
+          }
+          break;
+        }
+      }
+
